@@ -1265,7 +1265,7 @@ const PDP_UI=[
   ['pC2','C.2 Patto educativo',[['p','Si concorda con la famiglia e lo studente. Nelle attività di studio l\'allievo:'],['c','tut','è seguito da un Tutor'],['t','tutDis','Tutor nelle discipline'],['r','tutCad','Cadenza',opz(['quotidiana','bisettimanale','settimanale','quindicinale'])],...PST.map((x,i)=>['c','ps'+i,x]),['t','psAlt','Altro'],
     ['h','Strumenti da utilizzare nel lavoro a casa'],...PCA.map((x,i)=>['c','pc'+i,x]),['t','pcAlt','Risorse informatizzate: quali'],['h','Attività scolastiche individualizzate programmate'],...PAT.map((x,i)=>['c','pa'+i,x]),['a','paAlt','Altro',2]]],
   ['pD','D.1 Strategie per disciplina e tabella della valutazione',[['PDIS']]],
-  ['pE','E – Strumenti compensativi, misure dispensative, verifica',[['p','Le voci si spuntano da sole in base alle Misure scelte qui sopra per la tua disciplina; puoi aggiungerne o toglierne.'],['h','Strumenti compensativi'],...ECOD.C.map((x,i)=>['c','E_C'+(i+1),'C'+(i+1)+'. '+x]),['t','E_C11','C11. Altro'],
+  ['pE','Codici per la tabella D (C, D, V)',[['p','Spunta i codici da scrivere nelle tabelle della sezione D per la tua disciplina: si spuntano da soli in base alle Misure scelte qui sopra, puoi aggiungerne o toglierne. Nel Word la sezione E resta solo legenda, senza crocette.'],['h','Strumenti compensativi'],...ECOD.C.map((x,i)=>['c','E_C'+(i+1),'C'+(i+1)+'. '+x]),['t','E_C11','C11. Altro'],
     ['h','Misure dispensative e interventi di individualizzazione'],...ECOD.D.map((x,i)=>['c','E_D'+(i+1),'D'+(i+1)+'. '+x]),['h','Indicazioni per la verifica e la valutazione'],...ECOD.V.map((x,i)=>['c','E_V'+(i+1),'V'+(i+1)+'. '+x])]],
   ['pZ','Azioni sul contesto classe',[['p','Strumenti o strategie scelti per l\'alunno e come cambia la didattica per tutta la classe.'],['L','az',[['str','Strumento/strategia per l\'alunno'],['mod','Modifiche per la classe','a']],'Aggiungi riga']]],
   ['pF','Firme',[['L','fd',[['nome','Cognome e nome'],['dis','Disciplina']],'Aggiungi docente'],['t','luogo','Luogo'],['d','dataF','Data'],['t','dirig','Dirigente scolastico']]]
@@ -1276,9 +1276,11 @@ CAMPI_EXTRA.GRI=p=>{const m=pm(p);const sel=(k)=>`<select data-chg="peiF" data-k
 CONTA_EXTRA.GRI=p=>{const m=pm(p);return GRI.some((g,i)=>m['gi'+i]||m['go'+i])?1:0};
 CAMPI_EXTRA.MAL=p=>{const m=pm(p);if(!m.malOn)return '';return MAL.map(([gk,gt,qs])=>`<h3 class="pei-h">${esc(gt)}</h3>`+qs.map(([q,h],i)=>peiCampo(p,['t','mal'+gk+i,q+(h?' ('+h.replace(/ /g,' / ')+')':'')])).join('')).join('')};
 CONTA_EXTRA.MAL=p=>{const m=pm(p);return Object.keys(m).filter(k=>k.startsWith('mal')&&k!=='malOn'&&String(m[k]||'').trim()).length};
-const PDIS_CAMPI=[['nome','Disciplina'],['doc','Docente'],['chiave','Competenza chiave'],['comp','Competenza disciplinare (obiettivi di apprendimento)','a'],['strat','Strategie didattiche e organizzative inclusive','a'],['strum','Strumenti compensativi','a'],['misure','Misure dispensative','a'],['ob','Obiettivi disciplinari personalizzati','a'],['crit','Strategie e criteri di valutazione','a'],['tempi','Tempi aggiuntivi'],['altro','Altro']];
-function miaRigaPDP(c,p){const m=pm(p);return {nome:c.materia||'',doc:m.mDoc||S.profilo.nome||'',chiave:m.mChiave||'',comp:m.mComp||'',strat:p.strategie||'',strum:voci(p,'comp').join('; '),misure:voci(p,'disp').join('; '),ob:p.obiettivi||'',crit:voci(p,'val').filter(x=>!/tempi più lunghi/.test(x)).join('; '),tempi:m.mTempi||((p.val||[]).includes('tempi')?'Sì, circa il 30% in più':''),altro:m.mAltro||''}}
-CAMPI_EXTRA.PDIS=p=>`<h3 class="pei-h">${esc(p._mat||'La tua disciplina')}</h3><p class="muted sm">Strategie, strumenti, misure, obiettivi e criteri si prendono dalla parte qui sopra. Qui aggiungi solo il resto.</p>
+const PDIS_CAMPI=[['nome','Disciplina'],['doc','Docente'],['chiave','Competenza chiave'],['comp','Competenza disciplinare (obiettivi di apprendimento)','a'],['strat','Strategie didattiche e organizzative inclusive','a'],['strum','Strumenti compensativi (solo i codici, es. C1, C6)'],['misure','Misure dispensative (solo i codici, es. D4, D7)'],['ob','Obiettivi disciplinari personalizzati','a'],['crit','Strategie e criteri di valutazione (codici, es. V2, V5)','a'],['tempi','Tempi aggiuntivi'],['altro','Altro']];
+// nelle tabelle della sezione D vanno solo i codici (C1, D4, V2…): le spiegazioni sono nella legenda della sezione E
+function codiciPDP(p,pre){const out=ECOD[pre].map((_,i)=>pre+(i+1)).filter(k=>valC(p,'E_'+k));if(pre==='C'&&pieno(pm(p).E_C11))out.push('C11');return out.join(', ')}
+function miaRigaPDP(c,p){const m=pm(p);return {nome:c.materia||'',doc:m.mDoc||S.profilo.nome||'',chiave:m.mChiave||'',comp:m.mComp||'',strat:p.strategie||'',strum:codiciPDP(p,'C'),misure:codiciPDP(p,'D'),ob:p.obiettivi||'',crit:codiciPDP(p,'V'),tempi:m.mTempi||((p.val||[]).includes('tempi')?'Sì, circa il 30% in più':''),altro:m.mAltro||''}}
+CAMPI_EXTRA.PDIS=p=>`<h3 class="pei-h">${esc(p._mat||'La tua disciplina')}</h3><p class="muted sm">Strategie e obiettivi si prendono dalla parte qui sopra; strumenti, misure e criteri vanno nella tabella come codici (li scegli in “Codici per la tabella D”). Qui aggiungi solo il resto.</p>
   ${peiCampi(p,[['t','mDoc','Docente (vuoto = il tuo nome)'],['t','mChiave','Competenza chiave'],['a','mComp','Competenza disciplinare (obiettivi di apprendimento)',2],['t','mTempi','Tempi aggiuntivi (vuoto = dalle misure)'],['t','mAltro','Altro']])}
   <h3 class="pei-h">Altre discipline</h3><p class="muted sm">Le compilano i colleghi; aggiungile se le hai.</p>${peiCampo(p,['L','pdis',PDIS_CAMPI,'Aggiungi disciplina'])}`;
 CONTA_EXTRA.PDIS=p=>{const m=pm(p);return ['mDoc','mChiave','mComp','mTempi','mAltro'].filter(k=>pieno(m[k])).length+(m.pdis||[]).filter(r=>Object.values(r).some(x=>String(x||'').trim())).length};
@@ -1399,9 +1401,9 @@ function wordPDP(c,a){
   /* E */
   const eon=k=>!!valC(p,k);
   x+=H1('SEZIONE E: Quadro riassuntivo degli strumenti compensativi e delle misure dispensative -  parametri e criteri per la verifica/valutazione',{bef:0});
-  x+=wP('Sono contrassegnate con ☒ le voci adottate per l\'alunno/a.',{i:true,sz:18,aft:120});
-  const cod=(pre,list,extra)=>list.map((t,i)=>[wC(wP((eon('E_'+pre+(i+1))?'☒ ':'☐ ')+pre+(i+1)+'.',{b:true,sz:20}),900),wC(wP(t,{sz:20,b:eon('E_'+pre+(i+1))}),WW-900)]).concat(extra||[]);
-  x+=wT([900,WW-900],[[wC(wP(''),900),wC(wP('STRUMENTI COMPENSATIVI',{b:true,al:'center',sz:20})+wP('(legge 170/10 e linee guida 12/07/11)',{b:true,al:'center',sz:20}),WW-900)],...cod('C',ECOD.C,[[wC(wP((pieno(m.E_C11)?'☒ ':'☐ ')+'C11.',{b:true,sz:20}),900),wC(wP('Altro '+(pieno(m.E_C11)?m.E_C11:'______________________________________'),{sz:20}),WW-900)]])],{col:'000000',dopo:40});
+  x+=wP('Legenda dei codici usati nelle tabelle della sezione D.',{i:true,sz:18,aft:120});
+  const cod=(pre,list,extra)=>list.map((t,i)=>[wC(wP(pre+(i+1)+'.',{b:true,sz:20}),900),wC(wP(t,{sz:20}),WW-900)]).concat(extra||[]);
+  x+=wT([900,WW-900],[[wC(wP(''),900),wC(wP('STRUMENTI COMPENSATIVI',{b:true,al:'center',sz:20})+wP('(legge 170/10 e linee guida 12/07/11)',{b:true,al:'center',sz:20}),WW-900)],...cod('C',ECOD.C,[[wC(wP('C11.',{b:true,sz:20}),900),wC(wP('Altro '+(pieno(m.E_C11)?m.E_C11:'______________________________________'),{sz:20}),WW-900)]])],{col:'000000',dopo:40});
   x+=wP([wR('NB:',{b:true,i:true}),wR(' In caso di '),wR('esame di stato',{b:true}),wR(', gli '),wR('strumenti adottati',{b:true}),wR(' andranno indicati nella '),wR('riunione preliminare per l\'esame conclusivo del primo ciclo e nel documento del 15 maggio',{b:true}),wR(' (nota MPI n 1787/05 – MPI maggio 2007), in cui il Consiglio di Classe dovrà indicare modalità, tempi e sistema valutativo previsti.')],{sz:18,i:true,aft:200});
   x+=wT([900,WW-900],[[wC(wP(''),900),wC(wP('MISURE DISPENSATIVE (legge 170/10 e linee guida 12/07/11)',{b:true,al:'center',sz:20})+wP('E INTERVENTI DI INDIVIDUALIZZAZIONE',{b:true,al:'center',sz:20}),WW-900)],...cod('D',ECOD.D)],{col:'000000'});
   x+=wP(wR('INDICAZIONI PER LA VERIFICA E LA  VALUTAZIONE',{b:true,col:BL,font:T,sz:28}),{pb:true,aft:40})+wP(wR('da selezionare in relazione ai bisogni e alle specifiche situazioni apprenditive (es: valevoli per la valutazione formativa in itinere, ma non tutte applicabili per la valutazione “sommativa” in sede Esame di Stato)',{col:BL,font:T,sz:20}),{al:'center',aft:160});
@@ -2240,7 +2242,7 @@ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}ca
 cloudInit();
 render();
 
-var SEG_APP={id:"classi",nome:"Classi",v:"v15",toast:false};
+var SEG_APP={id:"classi",nome:"Classi",v:"v16",toast:false};
 /* ---------- Segnala un problema ----------
    Registro sul dispositivo (ultimi 120 eventi): errori, avvisi mostrati, schede aperte e pulsanti toccati.
    Solo NOMI delle azioni, mai i valori scritti (niente nomi di alunni, voti, testi).
