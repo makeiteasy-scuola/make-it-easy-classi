@@ -503,8 +503,9 @@ async function deriva(frase,salt){
 async function cifra(key,obj){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,te.encode(JSON.stringify(obj)));return{iv:b64(iv),ct:b64(ct)}}
 async function decifra(key,iv,ct){return JSON.parse(td.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(iv)},key,ub64(ct))))}
 // la chiave resta sul dispositivo (IndexedDB), non estraibile
-function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('makeiteasy-classi',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
-async function chiaveGet(id){try{const db=await idb();return await new Promise(res=>{const q=db.transaction('k').objectStore('k').get(id);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)})}catch(e){return null}}
+// su alcuni iPhone l'apertura della memoria interna non risponde mai: dopo 4 secondi si va avanti (al massimo chiede di nuovo la frase)
+function idb(){return new Promise((res,rej)=>{let r;const t=setTimeout(()=>rej(new Error('memoria del dispositivo non disponibile')),4000);try{r=indexedDB.open('makeiteasy-classi',1)}catch(e){clearTimeout(t);rej(e);return}r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>{clearTimeout(t);res(r.result)};r.onerror=()=>{clearTimeout(t);rej(r.error)};r.onblocked=()=>{clearTimeout(t);rej(new Error('memoria del dispositivo bloccata'))}})}
+async function chiaveGet(id){try{const db=await idb();return await new Promise(res=>{setTimeout(()=>res(null),3000);const q=db.transaction('k').objectStore('k').get(id);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)})}catch(e){return null}}
 async function chiaveSet(id,k){try{const db=await idb();await new Promise(res=>{const t=db.transaction('k','readwrite');k?t.objectStore('k').put(k,id):t.objectStore('k').delete(id);t.oncomplete=res;t.onerror=res})}catch(e){}}
 
 /* ---------- Sincronizzazione ---------- */
@@ -520,11 +521,17 @@ function cloudInit(){
       CLOUD.user=u;if(CLOUD.unsub){CLOUD.unsub();CLOUD.unsub=null}
       CLOUD.key=u?await chiaveGet(u.uid):null;CLOUD.ready=true;CLOUD.remote=null;
       if(u){CLOUD.stato='carico';CLOUD.ref=db.collection('classi').doc(u.uid);
-        CLOUD.unsub=CLOUD.ref.onSnapshot({includeMetadataChanges:true},snap=>{onRemote(snap)},err=>{CLOUD.stato='errore';CLOUD.err=err.message;render()})}
+        CLOUD.unsub=CLOUD.ref.onSnapshot({includeMetadataChanges:true},snap=>{onRemote(snap)},err=>{CLOUD.stato='errore';CLOUD.err=(err.code?err.code+': ':'')+(err.message||'');console.error('Classi: lettura dati',CLOUD.err);render()});
+        CLOUD.t0=Date.now();clearTimeout(CLOUD.tAttesa);CLOUD.tAttesa=setTimeout(()=>controllaServer(u),8000)}
       render();
     });
   }catch(e){CLOUD.on=false}
 }
+// se dopo 8 secondi non è arrivata la risposta del server, la chiedo direttamente; poi la schermata mostra Riprova
+async function controllaServer(u){if(CLOUD.remote||CLOUD.user!==u||!CLOUD.ref)return;
+  try{const snap=await CLOUD.ref.get({source:'server'});if(CLOUD.remote||CLOUD.user!==u)return;if(!snap.exists){CLOUD.remote={vuoto:true};CLOUD.stato='ok'}else{await onRemote(snap);return}}
+  catch(e){CLOUD.stato='errore';CLOUD.err=(e.code?e.code+': ':'')+(e.message||String(e));console.error('Classi: lettura dal server',CLOUD.err)}
+  CLOUD.lento=true;safeRender()}
 async function onRemote(snap){
   CLOUD.stato=snap.metadata.hasPendingWrites?'invio':snap.metadata.fromCache?'offline':'ok';
   const linked=lget(LINK)===CLOUD.user.uid;
@@ -659,7 +666,7 @@ const ordTag=o=>`<span class="ord ord-${o}">${ORDINI[o]||o}</span>`;
 function render(){
   migra(S);
   document.documentElement.style.setProperty('--accent',S.profilo.accento);
-  if(CLOUD.on&&!CLOUD.ready){$app.innerHTML='<main class="main"><p class="muted">Avvio…</p></main>';return}
+  if(CLOUD.on&&!CLOUD.ready){$app.innerHTML='<main class="main"><section class="block login"><p class="muted">Avvio…</p><div class="btns" id="avvioLento" hidden><button class="btn primary" onclick="location.reload()">Riprova</button><button class="btn" data-seg>Segnala un problema</button></div></section></main>';clearTimeout(window.__avvioT);window.__avvioT=setTimeout(()=>{const b=document.getElementById('avvioLento');if(b){b.hidden=false;console.error('Classi: avvio bloccato oltre 10 secondi')}},10000);return}
   if(CLOUD.on&&!CLOUD.user){$app.innerHTML=vLogin();return}
   if(CLOUD.on&&!CLOUD.key){$app.innerHTML=vFrase();return}
   if(CLOUD.scelta){$app.innerHTML=vScelta();return}
@@ -676,8 +683,11 @@ function vLogin(){
   ${CLOUD.loginErr?`<p class="note warn">${esc(CLOUD.loginErr)}</p>`:''}
   <div class="btns"><button class="btn primary" type="submit">Accedi</button><button class="link" type="button" data-act="pwReset">Ho dimenticato la password</button></div></form></section></main>`;
 }
+function traduciErr(m){m=String(m||'');return /permission/i.test(m)?'il database non dà il permesso (regole da aggiornare?) — '+m:/unavailable|offline|network/i.test(m)?'connessione assente o instabile — '+m:m||'errore sconosciuto'}
 function vFrase(){
-  if(!CLOUD.remote)return `<main class="main"><p class="muted">${CLOUD.stato==='offline'?'Serve la connessione per il primo accesso su questo dispositivo.':'Controllo i tuoi dati…'}</p></main>`;
+  if(!CLOUD.remote){const err=CLOUD.stato==='errore',lento=CLOUD.lento||err;
+    return `<main class="main"><section class="block login"><p class="${err?'note warn':'muted'}">${err?'Non riesco a leggere i tuoi dati: '+esc(traduciErr(CLOUD.err)):CLOUD.stato==='offline'?'Serve la connessione per il primo accesso su questo dispositivo.':'Controllo i tuoi dati…'}</p>
+    ${lento?`<p class="muted sm">Accesso come ${esc(CLOUD.user?.email||'')}.</p><div class="btns"><button class="btn primary" data-act="riprovaAvvio">Riprova</button><button class="btn" data-seg>Segnala un problema</button><button class="link" data-act="esci">Esci</button></div>`:''}</section></main>`}
   const nuova=!!CLOUD.remote.vuoto;
   return `<main class="main"><section class="block login"><h2>${nuova?'Scegli la frase segreta':'Inserisci la frase segreta'}</h2>
   <p class="muted">${nuova?'I dati degli alunni vengono cifrati su questo dispositivo con questa frase prima di andare online. Nessun altro può leggerli, nemmeno chi gestisce il server.':'È la frase scelta la prima volta. Serve una sola volta su questo dispositivo.'}</p>
@@ -2166,6 +2176,7 @@ document.addEventListener('click',e=>{
       firebase.auth().sendPasswordResetEmail(em).then(()=>toast('Ti ho mandato un\'email per cambiare password')).catch(()=>toast('Non riesco a mandare l\'email: controlla l\'indirizzo'));return}
     case 'tieniOnline':S=CLOUD.scelta;CLOUD.scelta=null;lset(KEY,JSON.stringify(S));lset(LINK,CLOUD.user.uid);break;
     case 'tieniLocale':CLOUD.scelta=null;lset(LINK,CLOUD.user.uid);save();pushNow();break;
+    case 'riprovaAvvio':location.reload();return;
     case 'esci':{ui.conferma=null;const u=CLOUD.user;chiaveSet(u?.uid,null).then(()=>firebase.auth().signOut()).then(()=>{lset(KEY,null);lset(LINK,null);lset(SALT,null);location.reload()});return}
     default:return;
   }
@@ -2242,7 +2253,7 @@ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}ca
 cloudInit();
 render();
 
-var SEG_APP={id:"classi",nome:"Classi",v:"v16",toast:false};
+var SEG_APP={id:"classi",nome:"Classi",v:"v17",toast:false};
 /* ---------- Segnala un problema ----------
    Registro sul dispositivo (ultimi 120 eventi): errori, avvisi mostrati, schede aperte e pulsanti toccati.
    Solo NOMI delle azioni, mai i valori scritti (niente nomi di alunni, voti, testi).
