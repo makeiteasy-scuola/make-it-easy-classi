@@ -1308,7 +1308,10 @@ function mioGruppo(c){const gs=gruppiConsiglio(c);const io=nk(S.profilo.nome);co
 // le righe delle altre discipline sono già pronte con materia e docenti: i colleghi compilano solo il resto
 function preparaPdis(c,p){const m=pm(p);m.pdis=m.pdis||[];const mg=mioGruppo(c);let n=0;
   if(mg){const k=m.pdis.length;m.pdis=m.pdis.filter(r=>!(nk(r.nome)===nk(mg.dis)&&!['strat','strum','misure','ob','crit','chiave','comp','tempi','altro'].some(f=>pieno(r[f]))));n+=k-m.pdis.length}
-  for(const g of gruppiConsiglio(c)){if(mg&&nk(g.dis)===nk(mg.dis))continue;if(m.pdis.some(r=>nk(r.nome)===nk(g.dis)))continue;m.pdis.push({nome:g.dis,doc:g.doc.join(', ')});n++}return n}
+  const gs=gruppiConsiglio(c);const CONT=['strat','strum','misure','ob','crit','chiave','comp','tempi','altro'];
+  if(gs.length){// l'elenco della classe comanda: docenti aggiornati, righe vuote di discipline che qui non ci sono tolte
+    const prima=JSON.stringify(m.pdis);m.pdis=m.pdis.filter(r=>{const g=gs.find(g=>nk(g.dis)===nk(r.nome));if(g){r.doc=g.doc.join(', ');return true}return CONT.some(f=>pieno(r[f]))});if(JSON.stringify(m.pdis)!==prima)n++}
+  for(const g of gs){if(mg&&nk(g.dis)===nk(mg.dis))continue;if(m.pdis.some(r=>nk(r.nome)===nk(g.dis)))continue;m.pdis.push({nome:g.dis,doc:g.doc.join(', ')});n++}return n}
 function miaRigaPDP(c,p){const m=pm(p);const g=mioGruppo(c);return {nome:g?g.dis:discUff(c.materia),doc:m.mDoc||(g?g.doc.join('\n'):S.profilo.nome)||'',chiave:m.mChiave||'',comp:m.mComp||'',strat:p.strategie||'',strum:codiciPDP(p,'C'),misure:codiciPDP(p,'D'),ob:p.obiettivi||'',crit:codiciPDP(p,'V'),tempi:m.mTempi||((p.val||[]).includes('tempi')?'Sì, circa il 30% in più':''),altro:m.mAltro||''}}
 CAMPI_EXTRA.PDIS=p=>`<h3 class="pei-h">${esc(p._mat||'La tua disciplina')}</h3><p class="muted sm">Strategie e obiettivi si prendono dalla parte qui sopra; strumenti, misure e criteri vanno nella tabella come codici (li scegli in “Codici per la tabella D”). Qui aggiungi solo il resto.</p>
   ${peiCampi(p,[['t','mDoc','Docente (vuoto = il tuo nome)'],['t','mChiave','Competenza chiave'],['a','mComp','Competenza disciplinare (obiettivi di apprendimento)',2],['t','mTempi','Tempi aggiuntivi (vuoto = dalle misure)'],['t','mAltro','Altro']])}
@@ -1419,7 +1422,7 @@ function wordPDP(c,a){
   x+=wP('Attività  scolastiche individualizzate programmate',{b:true,ind:200,bef:160,aft:40})+PAT.map((t,i)=>wP(BX(m['pa'+i])+'  '+t,{ind:400,aft:20})).join('')+wP('altro',{bef:160})+lines(m.paAlt,2);
   /* D.1 orizzontale */
   const fm=(m.pdis||[]).filter(r=>Object.values(r).some(v=>String(v||'').trim()));const rows=[];if(c.materia||mioGruppo(c))rows.push(miaRigaPDP(c,p));
-  {const mg=mioGruppo(c),usate=new Set();for(const g of gruppiConsiglio(c)){if(mg&&nk(g.dis)===nk(mg.dis))continue;const k=fm.findIndex((r,j)=>!usate.has(j)&&nk(r.nome)&&(nk(r.nome)===nk(g.dis)||nk(g.dis).includes(nk(r.nome))||nk(r.nome).includes(nk(g.dis))));const r=k>=0?(usate.add(k),fm[k]):{};rows.push({...r,nome:g.dis,doc:pieno(r.doc)?r.doc:g.doc.join('\n')})}
+  {const mg=mioGruppo(c),usate=new Set();for(const g of gruppiConsiglio(c)){if(mg&&nk(g.dis)===nk(mg.dis))continue;const k=fm.findIndex((r,j)=>!usate.has(j)&&nk(r.nome)&&(nk(r.nome)===nk(g.dis)||nk(g.dis).includes(nk(r.nome))||nk(r.nome).includes(nk(g.dis))));const r=k>=0?(usate.add(k),fm[k]):{};rows.push({...r,nome:g.dis,doc:g.doc.join('\n')})}
     rows.push(...fm.filter((r,j)=>!usate.has(j)&&!(mg&&nk(r.nome)===nk(mg.dis))))}
   while(rows.length<2)rows.push({});
   x+=wP('',{aft:0}).replace('</w:pPr>','<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr></w:pPr>');
@@ -1461,7 +1464,7 @@ function wordPDP(c,a){
       ...Array.from({length:n},(_,i)=>[wC(wP(az[i]?.str||'',{sz:20})+wP(''),2300),wC(wA(az[i]?.mod)+wP(''),WW-2300)])],{col:'000000'});}
   x+=wP('Le parti coinvolte si impegnano a rispettare quanto condiviso e concordato, nel presente PDP, per il successo formativo dell\'alunno.',{b:true,sz:26,line:true,bef:300,aft:200});
   x+=wP([wR('Si ricorda che il PDP è uno strumento di lavoro dinamico ',{sz:20}),wR('da aggiornarsi in itinere',{b:true,u:true,sz:20}),wR(', da parte di tutti gli attori. Per l\'interazione docenti di classe - docenti di scuola ospedale o domiciliare questo avviene non solo come scambio di informazioni, ma anche per la definizione della programmazione e di forme e modalità di valutazione in itinere e finale.',{sz:20})],{al:'both',line:true,pb:true,aft:200});
-  {const cc=consiglioDi(c);let fd=cc.length?cc.map(x=>({nome:(x.cog+' '+x.nome).trim(),dis:x.dis})):(m.fd||[]).filter(r=>Object.values(r).some(v=>String(v||'').trim()));if(!fd.length&&S.profilo.nome&&c.materia)fd.push({nome:S.profilo.nome,dis:discUff(c.materia)});const n=cc.length?fd.length:Math.max(9,fd.length);
+  {const cc=consiglioDi(c);let fd=cc.length?(()=>{const o=[];for(const x of cc){const n=(x.cog+' '+x.nome).trim();const e=o.find(y=>y.nome===n);if(e){if(!e.dis.split(' / ').includes(x.dis))e.dis+=' / '+x.dis}else o.push({nome:n,dis:x.dis})}return o})():(m.fd||[]).filter(r=>Object.values(r).some(v=>String(v||'').trim()));if(!fd.length&&S.profilo.nome&&c.materia)fd.push({nome:S.profilo.nome,dis:discUff(c.materia)});const n=cc.length?fd.length:Math.max(9,fd.length);
     x+=wP('FIRMA DEI DOCENTI',{b:true,aft:100})+wT([3200,3200,3238],[[wC(wP('COGNOME E NOME',{sz:24}),3200),wC(wP('DISCIPLINA',{sz:24}),3200),wC(wP('FIRMA',{sz:24}),3238)],...Array.from({length:n},(_,i)=>[wC(wP(fd[i]?.nome||'')+wP(''),3200),wC(wP(fd[i]?.dis||''),3200),wC(wP(''),3238)])],{col:'000000'});}
   x+=wP('FIRMA DEI GENITORI',{b:true,bef:160,aft:200})+wP('______________________________          ______________________________',{aft:200});
   x+=wP('FIRMA DELL\'ALLIEVO (per la scuola sec. di II gr.)',{b:true,aft:200})+wP('______________________________',{aft:240});
@@ -2045,9 +2048,12 @@ function vImp(){
   ${ui.conferma==='anno'?`<div class="form"><label class="tog"><input type="checkbox" id="tieniAl"><span>Tieni gli alunni nelle stesse classi (con i loro PDP/PEI)</span></label>
   <p class="warn-t">${CLOUD.key?'Prima scarico un backup cifrato dell\'anno che chiudi.':'Prima scarica un backup: dopo i dati dell\'anno non ci sono più.'}</p>
   <div class="btns"><button class="btn bad" data-act="nuovoAnno">Archivia e inizia il nuovo anno</button><button class="btn ghost" data-act="conf" data-v="">Annulla</button></div></div>`:'<button class="btn" data-act="conf" data-v="anno">Inizia il nuovo anno…</button>'}</section>`;
-  {const cc=S.consiglio||[];h+=`<section class="block"><h2>Consiglio di classe</h2><p class="muted">I docenti e le discipline per il PDP: righe della tabella D.1 e della tabella riassuntiva, e tabella FIRMA DEI DOCENTI. Una riga per docente: <b>Cognome Nome | Disciplina</b>. Il potenziamento finisce nella riga della sua disciplina (es. Potenziamento inglese con Lingua e cultura inglese). Se il nome ha due parole scrivi Cognome, Nome con la virgola.</p>
-  <textarea id="consTxt" rows="${Math.max(6,cc.length+2)}" data-chg="consiglio" placeholder="Rossi Mario | Matematica e scienze" spellcheck="false">${esc(testoConsiglio(cc))}</textarea>
-  <p class="muted sm">${cc.length?`${cc.length} docenti, ${gruppiConsiglio(null).length} righe nella tabella D.1.`:'Vuoto: la tabella delle firme resta da compilare a mano.'} Vale per tutte le classi. Resta cifrato con i tuoi dati.</p></section>`}
+  {const cl=S.classi.find(x=>x.id===ui.consClasse)||null;const cc=cl?(cl.consiglio||[]):(S.consiglio||[]);
+  h+=`<section class="block"><h2>Consiglio di classe</h2><p class="muted">I docenti e le discipline per il PDP: righe della tabella D.1 e della tabella riassuntiva, e tabella FIRMA DEI DOCENTI. Una riga per docente e disciplina: <b>Cognome Nome | Disciplina</b>. Se un docente ha due materie distinte, scrivi due righe. Il potenziamento finisce nella riga della sua disciplina (es. Potenziamento inglese con Lingua e cultura inglese). Se il nome ha due parole scrivi Cognome, Nome con la virgola.</p>
+  <label class="lbl" for="consSel">Elenco per</label><select id="consSel" data-chg="consSel"><option value="">Tutte le classi (elenco generale)</option>${S.classi.map(x=>`<option value="${x.id}" ${cl&&cl.id===x.id?'selected':''}>${esc(nomeClasse(x))}${x.consiglio&&x.consiglio.length?' · elenco suo':''}</option>`).join('')}</select>
+  <textarea id="consTxt" rows="${Math.max(6,cc.length+2)}" data-chg="consiglio" placeholder="${cl?'Vuoto: questa classe usa l\'elenco generale':'Rossi Mario | Matematica e scienze'}" spellcheck="false">${esc(testoConsiglio(cc))}</textarea>
+  ${cl&&!cc.length&&(S.consiglio||[]).length?'<div class="btns"><button class="btn sm" data-act="consCopia">Parti dall\'elenco generale e modifica</button></div>':''}
+  <p class="muted sm">${cl?(cc.length?`${esc(nomeClasse(cl))}: ${cc.length} righe, ${gruppiConsiglio(cl).length} discipline nella tabella D.1.`:`${esc(nomeClasse(cl))} usa l'elenco generale.`):(cc.length?`Elenco generale: ${cc.length} righe, ${gruppiConsiglio(null).length} discipline nella tabella D.1. Vale per le classi senza un elenco loro.`:'Vuoto: la tabella delle firme resta da compilare a mano.')} Resta cifrato con i tuoi dati.</p></section>`}
   h+=`<section class="block"><h2>Registro elettronico</h2><p class="muted">Il pulsante <b>Voti da Classi</b> compila da solo le tendine dei voti del registro ScuolaOnLine, abbinando i nomi. Il registro salva solo quando premi tu il suo Salva. Funziona dal browser del Mac (Safari o Chrome), non dall'app del registro.</p>
   <p><a class="btn primary bm-reg" href="javascript:${encodeURIComponent(BM_REG)}" onclick="return false" draggable="true">Voti da Classi</a></p>
   <ol class="sm reg-passi"><li>Apri Classi in <b>Safari sul Mac</b> (non dall'icona nel Dock), su questa pagina.</li><li>Mostra la barra dei Preferiti: menu Vista → Mostra barra dei Preferiti.</li><li><b>Trascina</b> il pulsante viola qui sopra nella barra dei Preferiti. Fatto una volta, resta lì.</li><li>Quando correggi una verifica: in Classi tocca <b>Copia per il registro elettronico</b>; nel registro apri Voti → Inserisci della classe; premi <b>Voti da Classi</b> nella barra, incolla (⌘V) e premi Compila.</li><li>Controlla i bordi: verde = compilato, giallo = da guardare. Poi premi il Salva del registro.</li></ol>
@@ -2188,6 +2194,7 @@ document.addEventListener('click',e=>{
       if(!righe.length){toast('Nessun voto completo da copiare');return}
       copia(`#MakeItEasy voti\nClasse: ${nomeClasse(c)} · Verifica: ${vf.titolo||''} · ${dBreve(vf.data)}\n`+righe.join('\n'),`Copiati ${righe.length} voti per il registro`);ui.regCopiato=vf.id;render();return}
     case 'regElOk':{const n=c.voti.filter(x=>x.verifica===ui.ver&&!x.registro).length;c.voti.forEach(x=>{if(x.verifica===ui.ver)x.registro=true});ui.regCopiato=null;save();toast(n+' voti segnati come riportati');break}
+    case 'consCopia':{const cl=S.classi.find(x=>x.id===ui.consClasse);if(cl){cl.consiglio=JSON.parse(JSON.stringify(S.consiglio||[]));save();toast('Copiato: ora modifica le righe diverse')}break}
     case 'color':S.profilo.accento=v;save();break;
     case 'bkCifrato':backupCifrato();return;
     case 'bkApri':apriBackupCifrato();return;
@@ -2241,7 +2248,8 @@ document.addEventListener('change',e=>{
     case 'oggiData':if(t.value){ui.oggiData=t.value}break;
     case 'allUp':{const f=t.files[0];if(!f)return;const vf=c.verifiche.find(x=>x.id===ui.ver);ui.caricando=true;render();
       salvaAllegato(f).then(m=>{vf.files=[...(vf.files||[]),m];ui.caricando=false;save();render();apriAllegato(m)}).catch(e=>{ui.caricando=false;toast(e.message||String(e));render()});return}
-    case 'consiglio':{S.consiglio=parseConsiglio(t.value);save();toast(`Consiglio di classe: ${S.consiglio.length} docenti`);break}
+    case 'consSel':ui.consClasse=t.value||null;break;
+    case 'consiglio':{const cl=S.classi.find(x=>x.id===ui.consClasse);const l=parseConsiglio(t.value);if(cl){if(l.length)cl.consiglio=l;else delete cl.consiglio}else S.consiglio=l;save();toast(cl?(l.length?`${nomeClasse(cl)}: ${l.length} righe`:`${nomeClasse(cl)} usa l'elenco generale`):`Elenco generale: ${l.length} righe`);break}
     case 'vfTit':{const vf=c.verifiche.find(x=>x.id===ui.ver);vf.titoloFoglio=t.value;save();return}
     case 'dsaAl':{const vf=c.verifiche.find(x=>x.id===ui.ver);vf.dsa=vf.dsa||{};vf.dsaMan=vf.dsaMan||{};vf.dsaMan[t.dataset.al]=true;if(t.checked)vf.dsa[t.dataset.al]=true;else delete vf.dsa[t.dataset.al];if(vf.ridMan)delete vf.ridMan[t.dataset.al];syncEsercizi(c,vf);save();break}
     case 'bTipo':case 'bPt':case 'bMax':case 'bCons':case 'bBanca':case 'bEs':case 'bRighe':case 'bDsa':{const vf=c.verifiche.find(x=>x.id===ui.ver);const B=vf.esx.find(x=>x.id===t.dataset.b);if(!B)return;
@@ -2282,7 +2290,7 @@ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}ca
 cloudInit();
 render();
 
-var SEG_APP={id:"classi",nome:"Classi",v:"v18",toast:false};
+var SEG_APP={id:"classi",nome:"Classi",v:"v19",toast:false};
 /* ---------- Segnala un problema ----------
    Registro sul dispositivo (ultimi 120 eventi): errori, avvisi mostrati, schede aperte e pulsanti toccati.
    Solo NOMI delle azioni, mai i valori scritti (niente nomi di alunni, voti, testi).
