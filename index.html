@@ -1278,7 +1278,7 @@ const PDP_UI=[
   ['pE','Codici per la tabella D (C, D, V)',[['p','Spunta i codici da scrivere nelle tabelle della sezione D per la tua disciplina: si spuntano da soli in base alle Misure scelte qui sopra, puoi aggiungerne o toglierne. Nel Word la sezione E resta solo legenda, senza crocette.'],['h','Strumenti compensativi'],...ECOD.C.map((x,i)=>['c','E_C'+(i+1),'C'+(i+1)+'. '+x]),['t','E_C11','C11. Altro'],
     ['h','Misure dispensative e interventi di individualizzazione'],...ECOD.D.map((x,i)=>['c','E_D'+(i+1),'D'+(i+1)+'. '+x]),['h','Indicazioni per la verifica e la valutazione'],...ECOD.V.map((x,i)=>['c','E_V'+(i+1),'V'+(i+1)+'. '+x])]],
   ['pZ','Azioni sul contesto classe',[['p','Strumenti o strategie scelti per l\'alunno e come cambia la didattica per tutta la classe.'],['L','az',[['str','Strumento/strategia per l\'alunno'],['mod','Modifiche per la classe','a']],'Aggiungi riga']]],
-  ['pF','Firme',[['L','fd',[['nome','Cognome e nome'],['dis','Disciplina']],'Aggiungi docente'],['t','luogo','Luogo'],['d','dataF','Data'],['t','dirig','Dirigente scolastico']]]
+  ['pF','Firme',[['p','La tabella FIRMA DEI DOCENTI si compila da sola con il Consiglio di classe (Impostazioni). Questo elenco serve solo se il Consiglio di classe è vuoto.'],['L','fd',[['nome','Cognome e nome'],['dis','Disciplina']],'Aggiungi docente'],['t','luogo','Luogo'],['d','dataF','Data'],['t','dirig','Dirigente scolastico']]]
 ];
 CAMPI_EXTRA.GRI=p=>{const m=pm(p);const sel=(k)=>`<select data-chg="peiF" data-k="${k}" aria-label="valore"><option value="">–</option>${['2','1','0','9'].map(x=>`<option ${m[k]===x?'selected':''}>${x}</option>`).join('')}</select>`;
   return `<h3 class="pei-h">Griglia osservativa (BES “III fascia”: svantaggio socioeconomico, linguistico e culturale)</h3><p class="muted sm">0 nessuna problematicità · 1 lievi o occasionali · 2 rilevanti o reiterate · 9 al contrario è un punto di forza.</p>
@@ -1289,13 +1289,33 @@ CONTA_EXTRA.MAL=p=>{const m=pm(p);return Object.keys(m).filter(k=>k.startsWith('
 const PDIS_CAMPI=[['nome','Disciplina'],['doc','Docente'],['chiave','Competenza chiave'],['comp','Competenza disciplinare (obiettivi di apprendimento)','a'],['strat','Strategie didattiche e organizzative inclusive','a'],['strum','Strumenti compensativi (solo i codici, es. C1, C6)'],['misure','Misure dispensative (solo i codici, es. D4, D7)'],['ob','Obiettivi disciplinari personalizzati','a'],['crit','Strategie e criteri di valutazione (codici, es. V2, V5)','a'],['tempi','Tempi aggiuntivi'],['altro','Altro']];
 // nelle tabelle della sezione D vanno solo i codici (C1, D4, V2…): le spiegazioni sono nella legenda della sezione E
 function codiciPDP(p,pre){const out=ECOD[pre].map((_,i)=>pre+(i+1)).filter(k=>valC(p,'E_'+k));if(pre==='C'&&pieno(pm(p).E_C11))out.push('C11');return out.join(', ')}
-function miaRigaPDP(c,p){const m=pm(p);return {nome:c.materia||'',doc:m.mDoc||S.profilo.nome||'',chiave:m.mChiave||'',comp:m.mComp||'',strat:p.strategie||'',strum:codiciPDP(p,'C'),misure:codiciPDP(p,'D'),ob:p.obiettivi||'',crit:codiciPDP(p,'V'),tempi:m.mTempi||((p.val||[]).includes('tempi')?'Sì, circa il 30% in più':''),altro:m.mAltro||''}}
+/* Consiglio di classe: docenti e discipline (Impostazioni → Consiglio di classe). Serve per le righe della tabella D.1,
+   la tabella riassuntiva e la tabella FIRMA DEI DOCENTI del PDP. Resta nei dati cifrati, non nel codice. */
+const nk=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const DISC_UFF={inglese:'Lingua e cultura inglese',spagnolo:'Lingua e cultura spagnola',francese:'Lingua e cultura francese',tedesco:'Lingua e cultura tedesca'};
+const discUff=m=>DISC_UFF[nk(m)]||m||'';
+function consiglioDi(c){return (c&&c.consiglio&&c.consiglio.length?c.consiglio:S.consiglio)||[]}
+function parseConsiglio(t){return String(t||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{const parti=l.split(/\s*[|\t]\s*/);const np=parti.shift()||'';const dis=parti.join(' ').trim();let cog,nome;
+  if(np.includes(',')){[cog,nome]=np.split(',').map(x=>x.trim())}else{const w=np.split(/\s+/);nome=w.length>1?w.pop():'';cog=w.join(' ')}return {cog:cog||'',nome:nome||'',dis}}).filter(x=>x.cog)}
+const testoConsiglio=l=>(l||[]).map(x=>(x.nome.includes(' ')?x.cog+', '+x.nome:(x.cog+' '+x.nome).trim())+' | '+x.dis).join('\n');
+// una riga per disciplina; il potenziamento va con la sua disciplina (Potenziamento inglese → Lingua e cultura inglese)
+function gruppiConsiglio(c){const l=consiglioDi(c),gs=[];const pot=x=>/^potenziamento /.test(nk(x.dis));const nm=x=>((x.nome?x.nome+' ':'')+x.cog).trim();
+  for(const x of l.filter(x=>!pot(x))){let g=gs.find(y=>nk(y.dis)===nk(x.dis));if(!g){g={dis:x.dis,doc:[]};gs.push(g)}g.doc.push(nm(x))}
+  for(const x of l.filter(pot)){const w=nk(x.dis).replace(/^potenziamento /,'').split(' ').filter(t=>t.length>3);let g=gs.find(y=>w.some(t=>nk(y.dis).includes(t)));if(!g){g={dis:x.dis,doc:[]};gs.push(g)}g.doc.push(nm(x))}
+  return gs}
+function mioGruppo(c){const gs=gruppiConsiglio(c);const io=nk(S.profilo.nome);const x=consiglioDi(c).find(x=>io&&nk(x.cog)&&io.split(' ').includes(nk(x.cog).split(' ').pop()));
+  if(x){const g=gs.find(g=>g.doc.some(d=>nk(d).includes(nk(x.cog))));if(g)return g}return gs.find(g=>c.materia&&(nk(g.dis).includes(nk(c.materia))||nk(discUff(c.materia))===nk(g.dis)))||null}
+// le righe delle altre discipline sono già pronte con materia e docenti: i colleghi compilano solo il resto
+function preparaPdis(c,p){const m=pm(p);m.pdis=m.pdis||[];const mg=mioGruppo(c);let n=0;
+  if(mg){const k=m.pdis.length;m.pdis=m.pdis.filter(r=>!(nk(r.nome)===nk(mg.dis)&&!['strat','strum','misure','ob','crit','chiave','comp','tempi','altro'].some(f=>pieno(r[f]))));n+=k-m.pdis.length}
+  for(const g of gruppiConsiglio(c)){if(mg&&nk(g.dis)===nk(mg.dis))continue;if(m.pdis.some(r=>nk(r.nome)===nk(g.dis)))continue;m.pdis.push({nome:g.dis,doc:g.doc.join(', ')});n++}return n}
+function miaRigaPDP(c,p){const m=pm(p);const g=mioGruppo(c);return {nome:g?g.dis:discUff(c.materia),doc:m.mDoc||(g?g.doc.join('\n'):S.profilo.nome)||'',chiave:m.mChiave||'',comp:m.mComp||'',strat:p.strategie||'',strum:codiciPDP(p,'C'),misure:codiciPDP(p,'D'),ob:p.obiettivi||'',crit:codiciPDP(p,'V'),tempi:m.mTempi||((p.val||[]).includes('tempi')?'Sì, circa il 30% in più':''),altro:m.mAltro||''}}
 CAMPI_EXTRA.PDIS=p=>`<h3 class="pei-h">${esc(p._mat||'La tua disciplina')}</h3><p class="muted sm">Strategie e obiettivi si prendono dalla parte qui sopra; strumenti, misure e criteri vanno nella tabella come codici (li scegli in “Codici per la tabella D”). Qui aggiungi solo il resto.</p>
   ${peiCampi(p,[['t','mDoc','Docente (vuoto = il tuo nome)'],['t','mChiave','Competenza chiave'],['a','mComp','Competenza disciplinare (obiettivi di apprendimento)',2],['t','mTempi','Tempi aggiuntivi (vuoto = dalle misure)'],['t','mAltro','Altro']])}
-  <h3 class="pei-h">Altre discipline</h3><p class="muted sm">Le compilano i colleghi; aggiungile se le hai.</p>${peiCampo(p,['L','pdis',PDIS_CAMPI,'Aggiungi disciplina'])}`;
+  <h3 class="pei-h">Altre discipline</h3><p class="muted sm">Le righe arrivano dal Consiglio di classe (Impostazioni), con materia e docenti già scritti: i colleghi compilano solo il resto.</p>${peiCampo(p,['L','pdis',PDIS_CAMPI,'Aggiungi disciplina'])}`;
 CONTA_EXTRA.PDIS=p=>{const m=pm(p);return ['mDoc','mChiave','mComp','mTempi','mAltro'].filter(k=>pieno(m[k])).length+(m.pdis||[]).filter(r=>Object.values(r).some(x=>String(x||'').trim())).length};
 function vPDP(c,a){
-  const p=a.piano;p._mat=c.materia||'';const ap=ui.peiApri||{};
+  const p=a.piano;{const g=mioGruppo(c);p._mat=g?g.dis:discUff(c.materia);if(preparaPdis(c,p))save()}const ap=ui.peiApri||{};
   const out=`<section class="block"><h2>Modello PDP (regionale Piemonte)</h2>
   <p class="muted sm">Le sezioni del modello della scuola. Compila quello che ti spetta: nel Word le parti vuote restano da completare a mano. Nome, classe e anno li mette l'app.</p>
   ${PDP_UI.map(([id,tit,campi])=>{const n=compilati(p,campi);return `<details class="ord-box pei-sez" ${ap[id]?'open':''}><summary data-act="peiApri" data-v="${id}"><span><b>${esc(tit)}</b></span><span class="muted sm">${n?n+' compilat'+(n===1?'o':'i'):'vuota'}</span></summary>
@@ -1398,12 +1418,15 @@ function wordPDP(c,a){
   x+=wP('Strumenti da utilizzare  nel lavoro a casa',{b:true,ind:200,aft:40})+PCA.map((t,i)=>wP(BX(m['pc'+i])+'  '+t+(i===PCA.length-1?' '+(pieno(m.pcAlt)?m.pcAlt:'…………………………………………'):''),{ind:400,aft:20})).join('');
   x+=wP('Attività  scolastiche individualizzate programmate',{b:true,ind:200,bef:160,aft:40})+PAT.map((t,i)=>wP(BX(m['pa'+i])+'  '+t,{ind:400,aft:20})).join('')+wP('altro',{bef:160})+lines(m.paAlt,2);
   /* D.1 orizzontale */
-  const fm=(m.pdis||[]).filter(r=>Object.values(r).some(v=>String(v||'').trim()));const rows=[];if(c.materia)rows.push(miaRigaPDP(c,p));rows.push(...fm);while(rows.length<2)rows.push({});
+  const fm=(m.pdis||[]).filter(r=>Object.values(r).some(v=>String(v||'').trim()));const rows=[];if(c.materia||mioGruppo(c))rows.push(miaRigaPDP(c,p));
+  {const mg=mioGruppo(c),usate=new Set();for(const g of gruppiConsiglio(c)){if(mg&&nk(g.dis)===nk(mg.dis))continue;const k=fm.findIndex((r,j)=>!usate.has(j)&&nk(r.nome)&&(nk(r.nome)===nk(g.dis)||nk(g.dis).includes(nk(r.nome))||nk(r.nome).includes(nk(g.dis))));const r=k>=0?(usate.add(k),fm[k]):{};rows.push({...r,nome:g.dis,doc:pieno(r.doc)?r.doc:g.doc.join('\n')})}
+    rows.push(...fm.filter((r,j)=>!usate.has(j)&&!(mg&&nk(r.nome)===nk(mg.dis))))}
+  while(rows.length<2)rows.push({});
   x+=wP('',{aft:0}).replace('</w:pPr>','<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr></w:pPr>');
   {const LW=14570;const ws=[2400,2470,2400,2400,2500,2400];
     x+=wP(wR('SEZIONE D: INTERVENTI EDUCATIVI E DIDATTICI',{b:true,col:BL,font:T,sz:28}),{al:'center',aft:60})+wP(wR('D.1: STRATEGIE DI PERSONALIZZAZIONE/INDIVIDUALIZZAZIONE',{b:true,i:true,col:BL,font:T,sz:24}),{al:'center',aft:200});
     const hd=[['DISCIPLINA o AMBITO DISCIPLINARE',''],['STRATEGIE DIDATTICHE e ORGANIZZATIVE INCLUSIVE','(didattica laboratoriale; cooperative learning; uso delle tecnologie; peer tutoring;…)'],['STRUMENTI COMPENSATIVI',''],['MISURE DISPENSATIVE','(se necessarie)'],['OBIETTIVI DISCIPLINARI PERSONALIZZATI','se necessari (conoscenze, abilità, atteggiamenti)'],['STRATEGIE E CRITERI DI VALUTAZIONE','']];
-    const d1=r=>wP('MATERIA',{b:true,sz:18,aft:0})+wP(pieno(r.nome)?String(r.nome).toUpperCase():'………………………',{sz:18})+wP('Competenza chiave',{b:true,sz:18,aft:0})+wP(pieno(r.chiave)?r.chiave:'………………………',{sz:18})+wP('Competenza disciplinare',{b:true,sz:18,aft:0})+wP('(ob di apprendimento)',{sz:16,aft:0})+(pieno(r.comp)?String(r.comp).split(/\n/).map(z=>wP(z,{sz:18})).join(''):wP('………………………',{sz:18}))+wP('Firma docente:',{sz:18,bef:120,aft:0})+wP(pieno(r.doc)?r.doc:'………………………',{sz:18});
+    const d1=r=>wP('MATERIA',{b:true,sz:18,aft:0})+wP(pieno(r.nome)?String(r.nome).toUpperCase():'………………………',{sz:18})+wP('Competenza chiave',{b:true,sz:18,aft:0})+wP(pieno(r.chiave)?r.chiave:'………………………',{sz:18})+wP('Competenza disciplinare',{b:true,sz:18,aft:0})+wP('(ob di apprendimento)',{sz:16,aft:0})+(pieno(r.comp)?String(r.comp).split(/\n/).map(z=>wP(z,{sz:18})).join(''):wP('………………………',{sz:18}))+wP('Firma docente:',{sz:18,bef:120,aft:0})+(pieno(r.doc)?String(r.doc).split(/\n|,\s*/).filter(z=>z.trim()).map(z=>wP(z.trim(),{sz:18,aft:0})).join(''):wP('………………………',{sz:18}));
     const tx=v=>pieno(v)?String(v).split(/\n|; /).filter(z=>z.trim()).map(z=>wP(z,{sz:18})).join(''):wP('');
     x+=wT(ws,[hd.map(([h,s2],i)=>wC(wP(h,{b:true,sz:20})+(s2?wP(s2,{sz:14}):''),ws[i])),...rows.map(r=>[wC(d1(r),ws[0]),wC(tx(r.strat),ws[1]),wC(tx(r.strum),ws[2]),wC(tx(r.misure),ws[3]),wC(tx(r.ob),ws[4]),wC(tx(r.crit),ws[5])])],{col:'000000'});
   }
@@ -1438,12 +1461,14 @@ function wordPDP(c,a){
       ...Array.from({length:n},(_,i)=>[wC(wP(az[i]?.str||'',{sz:20})+wP(''),2300),wC(wA(az[i]?.mod)+wP(''),WW-2300)])],{col:'000000'});}
   x+=wP('Le parti coinvolte si impegnano a rispettare quanto condiviso e concordato, nel presente PDP, per il successo formativo dell\'alunno.',{b:true,sz:26,line:true,bef:300,aft:200});
   x+=wP([wR('Si ricorda che il PDP è uno strumento di lavoro dinamico ',{sz:20}),wR('da aggiornarsi in itinere',{b:true,u:true,sz:20}),wR(', da parte di tutti gli attori. Per l\'interazione docenti di classe - docenti di scuola ospedale o domiciliare questo avviene non solo come scambio di informazioni, ma anche per la definizione della programmazione e di forme e modalità di valutazione in itinere e finale.',{sz:20})],{al:'both',line:true,pb:true,aft:200});
-  {const fd=(m.fd||[]).filter(r=>Object.values(r).some(v=>String(v||'').trim()));if(!fd.length&&S.profilo.nome&&c.materia)fd.push({nome:S.profilo.nome,dis:c.materia});const n=Math.max(9,fd.length);
+  {const cc=consiglioDi(c);let fd=cc.length?cc.map(x=>({nome:(x.cog+' '+x.nome).trim(),dis:x.dis})):(m.fd||[]).filter(r=>Object.values(r).some(v=>String(v||'').trim()));if(!fd.length&&S.profilo.nome&&c.materia)fd.push({nome:S.profilo.nome,dis:discUff(c.materia)});const n=cc.length?fd.length:Math.max(9,fd.length);
     x+=wP('FIRMA DEI DOCENTI',{b:true,aft:100})+wT([3200,3200,3238],[[wC(wP('COGNOME E NOME',{sz:24}),3200),wC(wP('DISCIPLINA',{sz:24}),3200),wC(wP('FIRMA',{sz:24}),3238)],...Array.from({length:n},(_,i)=>[wC(wP(fd[i]?.nome||'')+wP(''),3200),wC(wP(fd[i]?.dis||''),3200),wC(wP(''),3238)])],{col:'000000'});}
   x+=wP('FIRMA DEI GENITORI',{b:true,bef:160,aft:200})+wP('______________________________          ______________________________',{aft:200});
   x+=wP('FIRMA DELL\'ALLIEVO (per la scuola sec. di II gr.)',{b:true,aft:200})+wP('______________________________',{aft:240});
   x+=wP((pieno(m.luogo)?m.luogo:'____________________')+', lì '+(m.dataF?wD(m.dataF):'____________'),{aft:120})+wP('IL DIRIGENTE SCOLASTICO',{b:true,ind:5200,aft:240})+wP(pieno(m.dirig)?m.dirig:'____________________________________',{ind:4800});
-  return docx(`PDP ${c.nome} ${nomeDoc(a)}`.replace(/\s+/g,' ').trim().replace(/[\/:*?"<>|.]/g,'')+'.docx',x,{font:'Arial',sz:22,media:[['rIdImg1',IMG_PEI.header],['rIdImg2',IMG_PEI.gears]]});
+  // tutto in Georgia 11, anche titoli e tabelle (richiesta della scuola)
+  x=x.replace(/<w:rFonts [^>]*\/>/g,'').replace(/<w:sz w:val="\d+"\/><w:szCs w:val="\d+"\/>/g,'<w:sz w:val="22"/><w:szCs w:val="22"/>');
+  return docx(`PDP ${c.nome} ${nomeDoc(a)}`.replace(/\s+/g,' ').trim().replace(/[\/:*?"<>|.]/g,'')+'.docx',x,{font:'Georgia',sz:22,media:[['rIdImg1',IMG_PEI.header],['rIdImg2',IMG_PEI.gears]]});
 }
 
 function vPiani(c){
@@ -2020,6 +2045,9 @@ function vImp(){
   ${ui.conferma==='anno'?`<div class="form"><label class="tog"><input type="checkbox" id="tieniAl"><span>Tieni gli alunni nelle stesse classi (con i loro PDP/PEI)</span></label>
   <p class="warn-t">${CLOUD.key?'Prima scarico un backup cifrato dell\'anno che chiudi.':'Prima scarica un backup: dopo i dati dell\'anno non ci sono più.'}</p>
   <div class="btns"><button class="btn bad" data-act="nuovoAnno">Archivia e inizia il nuovo anno</button><button class="btn ghost" data-act="conf" data-v="">Annulla</button></div></div>`:'<button class="btn" data-act="conf" data-v="anno">Inizia il nuovo anno…</button>'}</section>`;
+  {const cc=S.consiglio||[];h+=`<section class="block"><h2>Consiglio di classe</h2><p class="muted">I docenti e le discipline per il PDP: righe della tabella D.1 e della tabella riassuntiva, e tabella FIRMA DEI DOCENTI. Una riga per docente: <b>Cognome Nome | Disciplina</b>. Il potenziamento finisce nella riga della sua disciplina (es. Potenziamento inglese con Lingua e cultura inglese). Se il nome ha due parole scrivi Cognome, Nome con la virgola.</p>
+  <textarea id="consTxt" rows="${Math.max(6,cc.length+2)}" data-chg="consiglio" placeholder="Rossi Mario | Matematica e scienze" spellcheck="false">${esc(testoConsiglio(cc))}</textarea>
+  <p class="muted sm">${cc.length?`${cc.length} docenti, ${gruppiConsiglio(null).length} righe nella tabella D.1.`:'Vuoto: la tabella delle firme resta da compilare a mano.'} Vale per tutte le classi. Resta cifrato con i tuoi dati.</p></section>`}
   h+=`<section class="block"><h2>Registro elettronico</h2><p class="muted">Il pulsante <b>Voti da Classi</b> compila da solo le tendine dei voti del registro ScuolaOnLine, abbinando i nomi. Il registro salva solo quando premi tu il suo Salva. Funziona dal browser del Mac (Safari o Chrome), non dall'app del registro.</p>
   <p><a class="btn primary bm-reg" href="javascript:${encodeURIComponent(BM_REG)}" onclick="return false" draggable="true">Voti da Classi</a></p>
   <ol class="sm reg-passi"><li>Apri Classi in <b>Safari sul Mac</b> (non dall'icona nel Dock), su questa pagina.</li><li>Mostra la barra dei Preferiti: menu Vista → Mostra barra dei Preferiti.</li><li><b>Trascina</b> il pulsante viola qui sopra nella barra dei Preferiti. Fatto una volta, resta lì.</li><li>Quando correggi una verifica: in Classi tocca <b>Copia per il registro elettronico</b>; nel registro apri Voti → Inserisci della classe; premi <b>Voti da Classi</b> nella barra, incolla (⌘V) e premi Compila.</li><li>Controlla i bordi: verde = compilato, giallo = da guardare. Poi premi il Salva del registro.</li></ol>
@@ -2213,6 +2241,7 @@ document.addEventListener('change',e=>{
     case 'oggiData':if(t.value){ui.oggiData=t.value}break;
     case 'allUp':{const f=t.files[0];if(!f)return;const vf=c.verifiche.find(x=>x.id===ui.ver);ui.caricando=true;render();
       salvaAllegato(f).then(m=>{vf.files=[...(vf.files||[]),m];ui.caricando=false;save();render();apriAllegato(m)}).catch(e=>{ui.caricando=false;toast(e.message||String(e));render()});return}
+    case 'consiglio':{S.consiglio=parseConsiglio(t.value);save();toast(`Consiglio di classe: ${S.consiglio.length} docenti`);break}
     case 'vfTit':{const vf=c.verifiche.find(x=>x.id===ui.ver);vf.titoloFoglio=t.value;save();return}
     case 'dsaAl':{const vf=c.verifiche.find(x=>x.id===ui.ver);vf.dsa=vf.dsa||{};vf.dsaMan=vf.dsaMan||{};vf.dsaMan[t.dataset.al]=true;if(t.checked)vf.dsa[t.dataset.al]=true;else delete vf.dsa[t.dataset.al];if(vf.ridMan)delete vf.ridMan[t.dataset.al];syncEsercizi(c,vf);save();break}
     case 'bTipo':case 'bPt':case 'bMax':case 'bCons':case 'bBanca':case 'bEs':case 'bRighe':case 'bDsa':{const vf=c.verifiche.find(x=>x.id===ui.ver);const B=vf.esx.find(x=>x.id===t.dataset.b);if(!B)return;
@@ -2253,7 +2282,7 @@ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}ca
 cloudInit();
 render();
 
-var SEG_APP={id:"classi",nome:"Classi",v:"v17",toast:false};
+var SEG_APP={id:"classi",nome:"Classi",v:"v18",toast:false};
 /* ---------- Segnala un problema ----------
    Registro sul dispositivo (ultimi 120 eventi): errori, avvisi mostrati, schede aperte e pulsanti toccati.
    Solo NOMI delle azioni, mai i valori scritti (niente nomi di alunni, voti, testi).
