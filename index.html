@@ -1328,6 +1328,7 @@ function vPDP(c,a){
 
 /* Word del PDP */
 function wordPDP(c,a){
+  const PB=()=>'<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/></w:pPr><w:r><w:br w:type="page"/></w:r></w:p>';
   const p=a.piano,m=pm(p);const T='Times New Roman',BL='4F81BD',WW=9638;
   const H1=(t,o={})=>wP(wR(t,{b:true,col:BL,font:T,sz:o.sz||28}),{bef:o.bef??200,aft:80,keep:true,pb:o.pb});
   const H2=(t,o={})=>wP(wR(t,{col:BL,font:T,sz:26,i:o.i}),{aft:120,keep:true});
@@ -1364,6 +1365,7 @@ function wordPDP(c,a){
   x+=wP(wR('2) INFORMAZIONI GENERALI FORNITE DALLA FAMIGLIA / ENTI AFFIDATARI',{b:true,u:true}),{aft:20})+wP('(ad esempio percorso scolastico pregresso, ripetenze, …)',{ind:300,aft:100})+lines(m.famInfo);
   /* A1 */
   const box=(tit,sub,cont)=>wT([WW],[[wC(tit+sub,WW)],[wC(cont,WW)]]);
+  x+=PB();
   x+=wT([WW],[[wC(wP([wR('SEZIONE A1: IL CONTESTO',{b:true,col:BL,font:T,sz:28}),wR(' (comune a tutti gli allievi)',{b:true,col:BL,font:T,sz:22})])+wP([wR('CONTESTO 1: L\'ALLIEVO/L\'ALLIEVA – ',{b:true}),wR('CENNI AUTOBIOGRAFICI',{b:true,u:true})],{al:'center',bef:120})+wP(wR('INFORMAZIONI  FORNITE DALL\'ALUNNO/STUDENTE: MI PRESENTO',{b:true,u:true}),{al:'center'})+wP('(Da compilare insieme agli allievi)',{al:'center',sz:20}),WW)],
     [wC(wP('Chi sono; quali Interessi, difficoltà, attività preferite; Quando sono soddisfatto; quando sto bene; Che cosa non mi piace; che cosa mi è di aiuto; che cosa mi è difficile; Che cosa vorrei che succedesse; che cosa mi aspetto dalla scuola, dagli insegnanti, dai compagni; Altro…',{sz:18})+lines(m.miPres,6)+
       wP('PER CONOSCERMI UN PO\' MEGLIO:',{b:true,bef:160})+wP('I MIEI  PUNTI DI FORZA',{bef:160})+lines(m.forza,2)+wP('I MIEI ASPETTI DI FRAGILITÀ',{bef:160})+lines(m.fragil,2)+wP('BISOGNI/CHE COSA CHIEDO AI MIEI INSEGNANTI?',{bef:160})+lines(m.bisogni,3),WW)]],{col:'000000'});
@@ -1372,7 +1374,7 @@ function wordPDP(c,a){
   /* B parte I */
   const b1on=dsa||[...B1,...B1b].some(([,dk,its])=>pieno(m[dk])||its.some(it=>Object.keys(m).some(k=>k.startsWith('b_'+it[0]))));
   if(b1on){
-    x+=H1('SEZIONE B –  PARTE I',{pb:true})+wP([wR('consigliata in caso di diagnosi ',{b:true,col:BL,font:T}),wR('di DSA e di altri disturbi del neurosviluppo',{b:true,u:true,col:BL,font:T}),wR(' (non riconosciuti come disabilità ex Legge 104)',{b:true,col:BL,font:T})],{aft:120})+H2('Descrizione delle abilità e dei comportamenti');
+    x+=H1('SEZIONE B –  PARTE I',{pb:true})+wP([wR('consigliata in caso di diagnosi ',{b:true,col:BL,font:T}),wR('di DSA e di altri disturbi del neurosviluppo',{b:true,u:true,col:BL,font:T}),wR(' (non riconosciuti come disabilità ex Legge 104)',{b:true,col:BL,font:T})],{aft:60,keep:true})+wP(wR('Descrizione delle abilità e dei comportamenti',{col:BL,font:T,sz:26}),{aft:60,keep:true});
     const c1=3300,c2=2400,c3=WW-c1-c2;const ops=it=>it[2].map((o,i)=>wP(BX(it[3]?m['b_'+it[0]+'_'+i]:sel('b_'+it[0],i))+' '+o,{sz:18,aft:20})).join('');
     const area=([tit,dk,items])=>{const r=[[wC(wP(tit,{b:true,sz:20}),c1),wC(wP(tit,{b:true,sz:20,al:'center'}),c2+c3,{span:2})]];
       items.forEach((it,i)=>r.push([wC(i===0?wA(m[dk]):wP(''),c1,{vm:i===0?'restart':'cont'}),wC(wP(it[1],{b:!!it[1]&&it[1]===it[1].toUpperCase(),sz:18}),c2),wC(ops(it),c3)]));return r};
@@ -1395,7 +1397,7 @@ function wordPDP(c,a){
     x+=wP('• per gli allievi con svantaggio socioeconomico, linguistico e culturale, senza diagnosi specialistica, si suggerisce la compilazione della griglia osservativa;',{sz:18,ind:300})+wP('• per gli allievi con Disturbi Evolutivi Specifici si suggerisce l\'osservazione e la descrizione del comportamento e degli apprendimenti sulla base delle priorità di ciascuna disciplina, anche utilizzando gli indicatori predisposti nella Sezione B parte I;',{sz:18,ind:300})+wP('• per gli allievi che usufruiscono dei servizi di scuola in ospedale, istruzione domiciliare o per altre situazioni di malattia, si suggerisce la compilazione delle sezioni B, C2 e D1, da parte del consiglio di classe/team e di eventuali altri consigli/docenti coinvolti (scuola in ospedale, ecc..).',{sz:18,ind:300});
     const g4=(k)=>wP(['2','1','0','9'].map(v=>wR(m[k]===v?'['+v+']':' '+v+' ',{b:m[k]===v,sz:22})).reduce((a2,r,i)=>a2.concat(i?[wR('   ')]:[],[r]),[]),{al:'center',aft:0});
     const rich=t=>t.split('**').map((s2,i)=>wR(s2,{b:i%2===1,sz:18}));
-    x+=wP('',{pb:true})+wT([4600,2500,2538],[[wC(wP('GRIGLIA OSSERVATIVA',{b:true,al:'center',sz:20})+wP('per  ALLIEVI CON BES “III FASCIA”',{b:true,al:'center',sz:20})+wP('(Area dello svantaggio socioeconomico, linguistico e culturale)',{b:true,al:'center',sz:18}),4600),wC(wP('Osservazione degli INSEGNANTI',{b:true,al:'center',sz:18}),2500),wC(wP('Eventuale osservazione di altri operatori, (es. educatori, ove presenti)',{b:true,al:'center',sz:18}),2538)],
+    x+=PB()+wT([4600,2500,2538],[[wC(wP('GRIGLIA OSSERVATIVA',{b:true,al:'center',sz:20})+wP('per  ALLIEVI CON BES “III FASCIA”',{b:true,al:'center',sz:20})+wP('(Area dello svantaggio socioeconomico, linguistico e culturale)',{b:true,al:'center',sz:18}),4600),wC(wP('Osservazione degli INSEGNANTI',{b:true,al:'center',sz:18}),2500),wC(wP('Eventuale osservazione di altri operatori, (es. educatori, ove presenti)',{b:true,al:'center',sz:18}),2538)],
       ...GRI.map((g,i)=>[wC(wP(rich(g),{aft:0}),4600),wC(g4('gi'+i),2500,{vc:true}),wC(g4('go'+i),2538,{vc:true})])],{col:'000000'});
     x+=wP('(Adattamento da Trinchero R., 2010)',{al:'right',sz:18})+wP('LEGENDA',{b:true,bef:200})+wP([wR('0',{b:true}),wR(' L\'elemento descritto dal criterio non mette in evidenza particolari problematicità')],{sz:20,aft:0})+wP([wR('1',{b:true}),wR(' L\'elemento descritto dal criterio mette in evidenza problematicità lievi o occasionali')],{sz:20,aft:0})+wP([wR('2',{b:true}),wR(' L\'elemento descritto dal criterio mette in evidenza problematicità rilevanti o reiterate')],{sz:20,aft:0})+wP([wR('9',{b:true}),wR(' L\'elemento "negativo" descritto non si rileva, ma, al contrario, si evidenzia nell\'allievo come comportamento positivo quale indicatore di un "punto di forza", su cui fare leva nell\'intervento (es: ultimo item - dimostra piena fiducia nelle proprie capacità).')],{sz:20,al:'both'});
   }
@@ -1413,8 +1415,9 @@ function wordPDP(c,a){
     const sec=t=>[wC(wP(t,{b:true,sz:20}),WW,{span:5})];
     const s2w=(WW-w1)/2;
     x+=wT([w1,w2,w2,w2,w2],[sec('MOTIVAZIONE'),...C1M.map((t,i)=>[wC(wP(t,{sz:20}),w1),...sc('c1m'+i)]),sec('ATTEGGIAMENTI E COMPORTAMENTI RISCONTRABILI A SCUOLA'),...C1A.map((t,i)=>[wC(wP(t,{sz:20}),w1),...sc('c1a'+i)]),sec('STRATEGIE UTILIZZATE DALL\'ALUNNO NELLO STUDIO'),
-      ...C1S.map((t,i)=>[wC(wP(t,{sz:20}),w1),wC(wP(BX(sel('c1s'+i,0))+'   Efficace',{sz:20}),s2w,{span:2}),wC(wP(BX(sel('c1s'+i,1))+'   Da potenziare',{sz:20}),s2w,{span:2})]),[wC(wP('Altro',{sz:20})+lines(m.c1alt,2),WW,{span:5})]],{col:'000000'});}
-  x+=wT([WW],[[wC(wP('APPRENDIMENTO DELLE LINGUE STRANIERE',{b:true,sz:20}),WW)],[wC(LST.map((t,i)=>wP(BX(m['ls'+i])+'  '+t,{sz:20,ind:300,aft:20})).join('')+wP(BX(pieno(m.lsAlt))+'  Altro '+(pieno(m.lsAlt)?m.lsAlt:'…………………………………………'),{sz:20,ind:300}),WW)]],{col:'000000'});
+      ...C1S.map((t,i)=>[wC(wP(t,{sz:20}),w1),wC(wP(BX(sel('c1s'+i,0))+'   Efficace',{sz:20}),s2w,{span:2}),wC(wP(BX(sel('c1s'+i,1))+'   Da potenziare',{sz:20}),s2w,{span:2})]),[wC(wP('Altro',{sz:20})+lines(m.c1alt,2),WW,{span:5})],
+      // apprendimento delle lingue straniere: attaccato alla tabella C.1, come nel modello
+      [wC(wP('APPRENDIMENTO DELLE LINGUE STRANIERE',{b:true,sz:20}),WW,{span:5})],[wC(LST.map((t,i)=>wP(BX(m['ls'+i])+'  '+t,{sz:20,ind:300,aft:20})).join('')+wP(BX(pieno(m.lsAlt))+'  Altro '+(pieno(m.lsAlt)?m.lsAlt:'…………………………………………'),{sz:20,ind:300}),WW,{span:5})]],{col:'000000'});}
   x+=wP(wR('C. 2 PATTO EDUCATIVO',{b:true,i:true,col:BL}),{bef:200,aft:120,keep:true})+wP(wR('Si concorda con la famiglia e lo studente:',{b:true,u:true}),{aft:120});
   x+=wP('Nelle attività di studio l\'allievo:',{b:true,ind:200,aft:40})+wP(BX(m.tut)+'  è seguito da un Tutor nelle discipline: '+(pieno(m.tutDis)?m.tutDis:'______________________________'),{ind:400,aft:0})+wP('con cadenza:   '+['quotidiana','bisettimanale','settimanale','quindicinale'].map((s2,i)=>BX(sel('tutCad',i))+' '+s2).join('     '),{ind:800,aft:20});
   x+=PST.map((t,i)=>wP(BX(m['ps'+i])+'  '+t,{ind:400,aft:20})).join('')+wP(BX(pieno(m.psAlt))+'  '+(pieno(m.psAlt)?m.psAlt:'……………………………………………………………'),{ind:400,aft:160});
@@ -1457,19 +1460,20 @@ function wordPDP(c,a){
     x+=wP('n.b.',{b:true,font:T})+wP([wR('È importante ricordare che la valutazione costituisce un processo multidimensionale, in virtù del quale occorre ',{font:T,sz:20}),wR('valutare tutte le dimensioni',{b:true,font:T,sz:20}),wR(', anche quelle relative ai fattori personali (relazionali, emotivi, motivazionali, corporei…), che vanno considerati in ottica pedagogica (non clinica o diagnostica) entro il framework della didattica e valutazione per competenze. Ad esempio, aspetti come l\'autoefficacia, la motivazione o la capacità espressiva corporea costituiscono elementi – chiave delle competenze generali (disciplinari e trasversali) di un allievo/a.',{font:T,sz:20})],{al:'both'});
   }
   /* azioni sul contesto */
-  x+=wP(wR('AZIONI SUL CONTESTO CLASSE (Verso una didattica inclusiva)',{b:true,col:'2E74B5',sz:28}),{pb:true,aft:300});
+  x+=wP(wR('AZIONI SUL CONTESTO CLASSE (Verso una didattica inclusiva)',{b:true,col:'2E74B5',sz:28}),{pb:true,aft:120,keep:true});
   {const az=(m.az||[]).filter(r=>Object.values(r).some(v=>String(v||'').trim()));const n=Math.max(7,az.length);
     x+=wT([2300,WW-2300],[[wC(wP('Tab. 3: PROPOSTE DI ADEGUAMENTI-ARRICCHIMENTI  DELLA “DIDATTICA DI CLASSE” IN RELAZIONE AGLI STRUMENTI/STRATEGIE INTRODOTTE PER L\'ALLIEVO CON BES',{b:true,font:T,al:'center',sz:20}),WW,{span:2})],
       [wC(wP('Strumento/strategia scelti per l\'allievo',{b:true,al:'center',sz:18})+wP('(Introduzione di facilitatori)',{b:true,al:'center',sz:18}),2300),wC(wP('Modifiche per la classe',{b:true,al:'center',sz:20})+wP('(descrivere sinteticamente come si intende modificare/adeguare la didattica per tutti)',{al:'center',sz:16}),WW-2300)],
       ...Array.from({length:n},(_,i)=>[wC(wP(az[i]?.str||'',{sz:20})+wP(''),2300),wC(wA(az[i]?.mod)+wP(''),WW-2300)])],{col:'000000'});}
-  x+=wP('Le parti coinvolte si impegnano a rispettare quanto condiviso e concordato, nel presente PDP, per il successo formativo dell\'alunno.',{b:true,sz:26,line:true,bef:300,aft:200});
-  x+=wP([wR('Si ricorda che il PDP è uno strumento di lavoro dinamico ',{sz:20}),wR('da aggiornarsi in itinere',{b:true,u:true,sz:20}),wR(', da parte di tutti gli attori. Per l\'interazione docenti di classe - docenti di scuola ospedale o domiciliare questo avviene non solo come scambio di informazioni, ma anche per la definizione della programmazione e di forme e modalità di valutazione in itinere e finale.',{sz:20})],{al:'both',line:true,pb:true,aft:200});
+  x+=wP('Le parti coinvolte si impegnano a rispettare quanto condiviso e concordato, nel presente PDP, per il successo formativo dell\'alunno.',{b:true,sz:26,line:true,bef:300,aft:0})+wP('',{aft:0});
+  x+=wP([wR('Si ricorda che il PDP è uno strumento di lavoro dinamico ',{sz:20}),wR('da aggiornarsi in itinere',{b:true,u:true,sz:20}),wR(', da parte di tutti gli attori. Per l\'interazione docenti di classe - docenti di scuola ospedale o domiciliare questo avviene non solo come scambio di informazioni, ma anche per la definizione della programmazione e di forme e modalità di valutazione in itinere e finale.',{sz:20})],{al:'both',line:true,aft:200});
   {const cc=consiglioDi(c);let fd=cc.length?(()=>{const o=[];for(const x of cc){const n=(x.cog+' '+x.nome).trim();const e=o.find(y=>y.nome===n);if(e){if(!e.dis.split(' / ').includes(x.dis))e.dis+=' / '+x.dis}else o.push({nome:n,dis:x.dis})}return o})():(m.fd||[]).filter(r=>Object.values(r).some(v=>String(v||'').trim()));if(!fd.length&&S.profilo.nome&&c.materia)fd.push({nome:S.profilo.nome,dis:discUff(c.materia)});const n=cc.length?fd.length:Math.max(9,fd.length);
-    x+=wP('FIRMA DEI DOCENTI',{b:true,aft:100})+wT([3200,3200,3238],[[wC(wP('COGNOME E NOME',{sz:24}),3200),wC(wP('DISCIPLINA',{sz:24}),3200),wC(wP('FIRMA',{sz:24}),3238)],...Array.from({length:n},(_,i)=>[wC(wP(fd[i]?.nome||'')+wP(''),3200),wC(wP(fd[i]?.dis||''),3200),wC(wP(''),3238)])],{col:'000000'});}
+    x+=PB()+wP('FIRMA DEI DOCENTI',{b:true,aft:100})+wT([3200,3200,3238],[[wC(wP('COGNOME E NOME',{sz:24}),3200),wC(wP('DISCIPLINA',{sz:24}),3200),wC(wP('FIRMA',{sz:24}),3238)],...Array.from({length:n},(_,i)=>[wC(wP(fd[i]?.nome||'')+wP(''),3200),wC(wP(fd[i]?.dis||''),3200),wC(wP(''),3238)])],{col:'000000'});}
   x+=wP('FIRMA DEI GENITORI',{b:true,bef:160,aft:200})+wP('______________________________          ______________________________',{aft:200});
   x+=wP('FIRMA DELL\'ALLIEVO (per la scuola sec. di II gr.)',{b:true,aft:200})+wP('______________________________',{aft:240});
   x+=wP((pieno(m.luogo)?m.luogo:'____________________')+', lì '+(m.dataF?wD(m.dataF):'____________'),{aft:120})+wP('IL DIRIGENTE SCOLASTICO',{b:true,ind:5200,aft:240})+wP(pieno(m.dirig)?m.dirig:'____________________________________',{ind:4800});
   // tutto in Georgia 10 con interlinea 1,5, anche titoli e tabelle (richiesta della scuola)
+  x=x.replace(/<w:p><w:pPr><w:pageBreakBefore\/>/g,PB()+'<w:p><w:pPr>');
   x=x.replace(/<w:rFonts [^>]*\/>/g,'').replace(/<w:sz w:val="\d+"\/><w:szCs w:val="\d+"\/>/g,'<w:sz w:val="20"/><w:szCs w:val="20"/>').replace(/<w:spacing (?![^>]*w:line=)/g,'<w:spacing w:line="360" w:lineRule="auto" ');
   return docx(`PDP ${c.nome} ${nomeDoc(a)}`.replace(/\s+/g,' ').trim().replace(/[\/:*?"<>|.]/g,'')+'.docx',x,{font:'Georgia',sz:20,media:[['rIdImg1',IMG_PEI.header],['rIdImg2',IMG_PEI.gears]]});
 }
@@ -2290,7 +2294,7 @@ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}ca
 cloudInit();
 render();
 
-var SEG_APP={id:"classi",nome:"Classi",v:"v20",toast:false};
+var SEG_APP={id:"classi",nome:"Classi",v:"v21",toast:false};
 /* ---------- Segnala un problema ----------
    Registro sul dispositivo (ultimi 120 eventi): errori, avvisi mostrati, schede aperte e pulsanti toccati.
    Solo NOMI delle azioni, mai i valori scritti (niente nomi di alunni, voti, testi).
