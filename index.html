@@ -1330,8 +1330,9 @@ function vPDP(c,a){
 function wordPDP(c,a){
   const PB=()=>'<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/></w:pPr><w:r><w:br w:type="page"/></w:r></w:p>';
   const p=a.piano,m=pm(p);const T='Times New Roman',BL='4F81BD',WW=9638;
-  const H1=(t,o={})=>wP(wR(t,{b:true,col:BL,font:T,sz:o.sz||28}),{bef:o.bef??200,aft:80,keep:true,pb:o.pb});
-  const H2=(t,o={})=>wP(wR(t,{col:BL,font:T,sz:26,i:o.i}),{aft:120,keep:true});
+  // keep:false prima delle tabelle lunghe: Pages, con "mantieni con il successivo", sposta tutta la tabella alla pagina dopo
+  const H1=(t,o={})=>wP(wR(t,{b:true,col:BL,font:T,sz:o.sz||28}),{bef:o.bef??200,aft:80,keep:o.keep??true,pb:o.pb});
+  const H2=(t,o={})=>wP(wR(t,{col:BL,font:T,sz:26,i:o.i}),{aft:120,keep:o.keep??true});
   const BX=v=>v?'☒':'☐';
   const fl=(lab,v,o={})=>wP([wR(lab,{b:true}),wR(pieno(v)?' '+v:' ______________________________')],{aft:o.aft??100,ind:o.ind});
   const dt=v=>v?wD(v):'___/___/______';
@@ -1374,7 +1375,7 @@ function wordPDP(c,a){
   /* B parte I */
   const b1on=dsa||[...B1,...B1b].some(([,dk,its])=>pieno(m[dk])||its.some(it=>Object.keys(m).some(k=>k.startsWith('b_'+it[0]))));
   if(b1on){
-    x+=H1('SEZIONE B –  PARTE I',{pb:true})+wP([wR('consigliata in caso di diagnosi ',{b:true,col:BL,font:T}),wR('di DSA e di altri disturbi del neurosviluppo',{b:true,u:true,col:BL,font:T}),wR(' (non riconosciuti come disabilità ex Legge 104)',{b:true,col:BL,font:T})],{aft:60,keep:true})+wP(wR('Descrizione delle abilità e dei comportamenti',{col:BL,font:T,sz:26}),{aft:60,keep:true});
+    x+=H1('SEZIONE B –  PARTE I',{pb:true,keep:false})+wP([wR('consigliata in caso di diagnosi ',{b:true,col:BL,font:T}),wR('di DSA e di altri disturbi del neurosviluppo',{b:true,u:true,col:BL,font:T}),wR(' (non riconosciuti come disabilità ex Legge 104)',{b:true,col:BL,font:T})],{aft:60})+wP(wR('Descrizione delle abilità e dei comportamenti',{col:BL,font:T,sz:26}),{aft:60});
     const c1=3300,c2=2400,c3=WW-c1-c2;const ops=it=>it[2].map((o,i)=>wP(BX(it[3]?m['b_'+it[0]+'_'+i]:sel('b_'+it[0],i))+' '+o,{sz:18,aft:20})).join('');
     const area=([tit,dk,items])=>{const r=[[wC(wP(tit,{b:true,sz:20}),c1),wC(wP(tit,{b:true,sz:20,al:'center'}),c2+c3,{span:2})]];
       items.forEach((it,i)=>r.push([wC(i===0?wA(m[dk]):wP(''),c1,{vm:i===0?'restart':'cont'}),wC(wP(it[1],{b:!!it[1]&&it[1]===it[1].toUpperCase(),sz:18}),c2),wC(ops(it),c3)]));return r};
@@ -1410,7 +1411,7 @@ function wordPDP(c,a){
     x+=wT(ws,[fix(MAL.flatMap(([gk,gt])=>[wC(wP(gt,{b:true,sz:18}),0),wC(wP(''),0)])),...Array.from({length:n},(_,i)=>fix(MAL.flatMap(([gk,,qs])=>cell(gk,qs[i],i))))],{col:'000000'});
   }
   /* C */
-  x+=H1('SEZIONE C -  (comune a tutti gli allievi con Disturbi del Neurosviluppo e altri BES)',{pb:true})+H2('C.1 Osservazione di Ulteriori Aspetti Significativi',{i:true});
+  x+=H1('SEZIONE C -  (comune a tutti gli allievi con Disturbi del Neurosviluppo e altri BES)',{pb:true,keep:false})+H2('C.1 Osservazione di Ulteriori Aspetti Significativi',{i:true,keep:false});
   {const w1=3500,w2=(WW-w1)/4;const sc=(k)=>SC4.map((s2,i)=>wC(wP(BX(sel(k,i))+' '+s2,{sz:18}),w2));
     const sec=t=>[wC(wP(t,{b:true,sz:20}),WW,{span:5})];
     const s2w=(WW-w1)/2;
@@ -2294,7 +2295,7 @@ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}ca
 cloudInit();
 render();
 
-var SEG_APP={id:"classi",nome:"Classi",v:"v21",toast:false};
+var SEG_APP={id:"classi",nome:"Classi",v:"v22",toast:false};
 /* ---------- Segnala un problema ----------
    Registro sul dispositivo (ultimi 120 eventi): errori, avvisi mostrati, schede aperte e pulsanti toccati.
    Solo NOMI delle azioni, mai i valori scritti (niente nomi di alunni, voti, testi).
