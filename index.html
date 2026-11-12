@@ -1469,9 +1469,9 @@ function wordPDP(c,a){
   x+=wP('FIRMA DEI GENITORI',{b:true,bef:160,aft:200})+wP('______________________________          ______________________________',{aft:200});
   x+=wP('FIRMA DELL\'ALLIEVO (per la scuola sec. di II gr.)',{b:true,aft:200})+wP('______________________________',{aft:240});
   x+=wP((pieno(m.luogo)?m.luogo:'____________________')+', lì '+(m.dataF?wD(m.dataF):'____________'),{aft:120})+wP('IL DIRIGENTE SCOLASTICO',{b:true,ind:5200,aft:240})+wP(pieno(m.dirig)?m.dirig:'____________________________________',{ind:4800});
-  // tutto in Georgia 11, anche titoli e tabelle (richiesta della scuola)
-  x=x.replace(/<w:rFonts [^>]*\/>/g,'').replace(/<w:sz w:val="\d+"\/><w:szCs w:val="\d+"\/>/g,'<w:sz w:val="22"/><w:szCs w:val="22"/>');
-  return docx(`PDP ${c.nome} ${nomeDoc(a)}`.replace(/\s+/g,' ').trim().replace(/[\/:*?"<>|.]/g,'')+'.docx',x,{font:'Georgia',sz:22,media:[['rIdImg1',IMG_PEI.header],['rIdImg2',IMG_PEI.gears]]});
+  // tutto in Georgia 10 con interlinea 1,5, anche titoli e tabelle (richiesta della scuola)
+  x=x.replace(/<w:rFonts [^>]*\/>/g,'').replace(/<w:sz w:val="\d+"\/><w:szCs w:val="\d+"\/>/g,'<w:sz w:val="20"/><w:szCs w:val="20"/>').replace(/<w:spacing (?![^>]*w:line=)/g,'<w:spacing w:line="360" w:lineRule="auto" ');
+  return docx(`PDP ${c.nome} ${nomeDoc(a)}`.replace(/\s+/g,' ').trim().replace(/[\/:*?"<>|.]/g,'')+'.docx',x,{font:'Georgia',sz:20,media:[['rIdImg1',IMG_PEI.header],['rIdImg2',IMG_PEI.gears]]});
 }
 
 function vPiani(c){
@@ -2290,7 +2290,7 @@ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}ca
 cloudInit();
 render();
 
-var SEG_APP={id:"classi",nome:"Classi",v:"v19",toast:false};
+var SEG_APP={id:"classi",nome:"Classi",v:"v20",toast:false};
 /* ---------- Segnala un problema ----------
    Registro sul dispositivo (ultimi 120 eventi): errori, avvisi mostrati, schede aperte e pulsanti toccati.
    Solo NOMI delle azioni, mai i valori scritti (niente nomi di alunni, voti, testi).
